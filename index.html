@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CryptoPhysics Portfolio Analyzer</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <div class="logo">
+                <h1>⚛️ CryptoPhysics</h1>
+                <p class="tagline">Portfolio com Física Real</p>
+            </div>
+
+            <!-- FORMULÁRIO DE ADIÇÃO -->
+            <div class="control-panel">
+                <h2>🎨 Adicionar Ativo</h2>
+                <form id="addAssetForm">
+                    <div class="form-group">
+                        <label for="assetSelect">Criptomoeda</label>
+                        <select id="assetSelect" required>
+                            <option value="">Selecione...</option>
+                            <option value="bitcoin">₿ Bitcoin (BTC)</option>
+                            <option value="ethereum">Ξ Ethereum (ETH)</option>
+                            <option value="solana">◎ Solana (SOL)</option>
+                            <option value="binancecoin">◆ Binance Coin (BNB)</option>
+                            <option value="cardano">₳ Cardano (ADA)</option>
+                            <option value="dogecoin">🐕 Dogecoin (DOGE)</option>
+                            <option value="shiba-inu">🐕 Shiba Inu (SHIB)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="quantityInput">Quantidade</label>
+                        <input type="number" id="quantityInput" min="0.001" step="0.001" placeholder="Ex: 0.5" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        ➕ Adicionar ao Portfólio
+                    </button>
+                </form>
+            </div>
+
+            <!-- MÉTRICAS -->
+            <div class="metrics">
+                <h2>📊 Métricas da Carteira</h2>
+                <div class="metric-item">
+                    <span class="metric-label">💰 Valor Total:</span>
+                    <span class="metric-value" id="totalValue">$0.00</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">📈 Ativos:</span>
+                    <span class="metric-value" id="assetCount">0</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">🎯 Risco:</span>
+                    <span class="metric-value risk-indicator" id="riskLevel">Nenhum</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">🌈 Diversificação:</span>
+                    <span class="metric-value" id="diversification">0%</span>
+                </div>
+            </div>
+
+            <!-- AÇÕES -->
+            <div class="actions">
+                <h2>⚙️ Ações</h2>
+                <button class="btn btn-warning" id="stressTestBtn">
+                    🌊 Stress Test
+                </button>
+                <button class="btn btn-info" id="resetZoneBtn">
+                    🎯 Resetar Posições
+                </button>
+                <button class="btn btn-success" id="saveBtn">
+                    💾 Salvar Carteira
+                </button>
+                <button class="btn btn-danger" id="clearBtn">
+                    🗑️ Limpar Tudo
+                </button>
+            </div>
+
+            <!-- LEGENDA -->
+            <div class="legend">
+                <h3>📖 Legenda Física</h3>
+                <div class="legend-item">
+                    <span class="legend-color" style="background: #F7931A;"></span>
+                    <span>Pesado = Estável</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color bouncy"></span>
+                    <span>Saltitante = Volátil</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color" style="background: #14F195;"></span>
+                    <span>Verde = Menor Risco</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color" style="background: #FF1493;"></span>
+                    <span>Rosa = Alto Risco</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- CANVAS DE FÍSICA -->
+        <main class="canvas-container">
+            <div class="canvas-header">
+                <h2>🌍 Simulação Física do Portfólio</h2>
+                <div class="canvas-controls">
+                    <button class="icon-btn" id="pauseBtn" title="Pausar/Retomar">⏸️</button>
+                    <button class="icon-btn" id="gravityBtn" title="Alternar Gravidade">🌍</button>
+                </div>
+            </div>
+            <div id="physicsCanvas"></div>
+            <div class="canvas-info">
+                <p>💡 <strong>Dica:</strong> Arraste os ativos, clique duas vezes para detalhes, observe como cada cripto se comporta!</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal de Detalhes -->
+    <div id="assetModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close">&times;</span>
+            <h2 id="modalTitle"></h2>
+            <div id="modalBody"></div>
+            <button class="btn btn-danger" id="removeAssetBtn">🗑️ Remover Ativo</button>
+        </div>
+    </div>
+
+    <!-- Matter.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+
+    <!-- Chart.js CDN (opcional para gráficos futuros) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <!-- App Principal -->
+    <script src="app.js"></script>
+</body>
+</html>
