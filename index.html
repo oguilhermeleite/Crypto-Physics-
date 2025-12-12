@@ -13,11 +13,12 @@
             <div class="logo">
                 <h1>⚛️ CryptoPhysics</h1>
                 <p class="tagline">Portfolio com Física Real</p>
+                <button class="btn-help" id="howItWorksBtn">❓ Como Funciona?</button>
             </div>
 
             <!-- FORMULÁRIO DE ADIÇÃO -->
             <div class="control-panel">
-                <h2>🎨 Adicionar Ativo</h2>
+                <h2>💎 Adicionar Ativo</h2>
                 <form id="addAssetForm">
                     <div class="form-group">
                         <label for="assetSelect">Criptomoeda</label>
@@ -63,21 +64,27 @@
                     <span class="metric-label">🌈 Diversificação:</span>
                     <span class="metric-value" id="diversification">0%</span>
                 </div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="diversificationBar"></div>
+                </div>
             </div>
 
             <!-- AÇÕES -->
             <div class="actions">
                 <h2>⚙️ Ações</h2>
-                <button class="btn btn-warning" id="stressTestBtn">
+                <button class="btn btn-chaos" id="chaosMode" title="Caos extremo!">
+                    🌪️ Modo Caos
+                </button>
+                <button class="btn btn-warning" id="stressTestBtn" title="Aplicar forças aleatórias">
                     🌊 Stress Test
                 </button>
-                <button class="btn btn-info" id="resetZoneBtn">
+                <button class="btn btn-info" id="resetZoneBtn" title="Reorganizar sem deletar">
                     🎯 Resetar Posições
                 </button>
-                <button class="btn btn-success" id="saveBtn">
+                <button class="btn btn-success" id="saveBtn" title="Salvar no navegador">
                     💾 Salvar Carteira
                 </button>
-                <button class="btn btn-danger" id="clearBtn">
+                <button class="btn btn-danger" id="clearBtn" title="Remover todos os ativos">
                     🗑️ Limpar Tudo
                 </button>
             </div>
@@ -127,6 +134,103 @@
             <h2 id="modalTitle"></h2>
             <div id="modalBody"></div>
             <button class="btn btn-danger" id="removeAssetBtn">🗑️ Remover Ativo</button>
+        </div>
+    </div>
+
+    <!-- Modal Como Funciona -->
+    <div id="howItWorksModal" class="modal">
+        <div class="modal-content modal-large">
+            <span class="modal-close" id="closeHowItWorks">&times;</span>
+            <h2 class="modal-title-fancy">❓ Como Funciona o CryptoPhysics?</h2>
+
+            <div class="how-it-works-content">
+                <section class="info-section">
+                    <h3>⚛️ O Conceito</h3>
+                    <p>No CryptoPhysics, cada criptomoeda é representada por um <strong>objeto físico</strong> com propriedades que refletem suas características reais no mercado:</p>
+                    <ul>
+                        <li><strong>Massa</strong> = Estabilidade e capitalização</li>
+                        <li><strong>Fricção</strong> = Resistência a mudanças bruscas</li>
+                        <li><strong>Restituição (bounce)</strong> = Volatilidade</li>
+                    </ul>
+                </section>
+
+                <section class="info-section">
+                    <h3>🎨 Comportamento dos Ativos</h3>
+                    <div class="asset-examples">
+                        <div class="asset-card">
+                            <span class="asset-icon">🟧</span>
+                            <h4>Bitcoin (BTC)</h4>
+                            <p><strong>A Rocha:</strong> Pesado, estável, quase não quica. Representa a solidez do BTC no mercado.</p>
+                        </div>
+                        <div class="asset-card">
+                            <span class="asset-icon">🟦</span>
+                            <h4>Ethereum (ETH)</h4>
+                            <p><strong>O Tijolo:</strong> Sólido e confiável, com boa fricção. Estabilidade moderada.</p>
+                        </div>
+                        <div class="asset-card">
+                            <span class="asset-icon">🟩</span>
+                            <h4>Solana (SOL)</h4>
+                            <p><strong>O Pentágono:</strong> Ágil e responsivo, mais volátil que BTC/ETH.</p>
+                        </div>
+                        <div class="asset-card">
+                            <span class="asset-icon">🌸</span>
+                            <h4>Memecoins (DOGE/SHIB)</h4>
+                            <p><strong>Nuvem Caótica:</strong> Múltiplas partículas super saltitantes! Alta volatilidade extrema.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="info-section">
+                    <h3>🎮 Controles Interativos</h3>
+                    <div class="controls-grid">
+                        <div class="control-item">
+                            <span class="control-emoji">👆</span>
+                            <strong>Duplo Clique:</strong> Abre detalhes completos do ativo
+                        </div>
+                        <div class="control-item">
+                            <span class="control-emoji">✋</span>
+                            <strong>Arrastar:</strong> Movimente qualquer objeto livremente
+                        </div>
+                        <div class="control-item">
+                            <span class="control-emoji">🌊</span>
+                            <strong>Stress Test:</strong> Aplica forças aleatórias (simula volatilidade)
+                        </div>
+                        <div class="control-item">
+                            <span class="control-emoji">🌪️</span>
+                            <strong>Modo Caos:</strong> Forças extremas! Simula crash de mercado
+                        </div>
+                        <div class="control-item">
+                            <span class="control-emoji">⏸️</span>
+                            <strong>Pausar:</strong> Congela a simulação
+                        </div>
+                        <div class="control-item">
+                            <span class="control-emoji">🚀</span>
+                            <strong>Gravidade:</strong> Alterna entre modo normal e espaço sideral
+                        </div>
+                    </div>
+                </section>
+
+                <section class="info-section">
+                    <h3>📊 Interpretando as Métricas</h3>
+                    <ul>
+                        <li><strong>💰 Valor Total:</strong> Soma do valor de todos os ativos (preços em tempo real via CoinGecko)</li>
+                        <li><strong>📈 Ativos:</strong> Quantidade total de objetos no portfólio</li>
+                        <li><strong>🎯 Risco:</strong> Calculado pela volatilidade média ponderada (Baixo &lt;2%, Médio 2-4%, Alto &gt;4%)</li>
+                        <li><strong>🌈 Diversificação:</strong> Percentual baseado na variedade de criptos (máximo 7 tipos)</li>
+                    </ul>
+                </section>
+
+                <section class="info-section tips-section">
+                    <h3>💡 Dicas de Uso</h3>
+                    <ul class="tips-list">
+                        <li>🎯 Adicione múltiplos ativos para ver como interagem fisicamente</li>
+                        <li>🌊 Use o Stress Test para visualizar como seu portfólio reage à turbulência</li>
+                        <li>💾 Salve sua carteira para carregar na próxima visita</li>
+                        <li>🔄 Experimente diferentes combinações para otimizar diversificação</li>
+                        <li>🐕 Memecoins criam partículas caóticas - veja o espetáculo!</li>
+                    </ul>
+                </section>
+            </div>
         </div>
     </div>
 

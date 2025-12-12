@@ -35,6 +35,9 @@ class CryptoPhysicsEngine {
         // Selected asset for modal
         this.selectedAsset = null;
 
+        // Particle effects
+        this.particles = [];
+
         // Initialize
         this.init();
     }
@@ -115,8 +118,9 @@ class CryptoPhysicsEngine {
                 render: {
                     fillStyle: 'rgba(20, 241, 149, 0.03)',
                     strokeStyle: '#14F195',
-                    lineWidth: 2,
-                    opacity: 0.5
+                    lineWidth: 3,
+                    lineDash: [10, 10],
+                    opacity: 0.6
                 },
                 label: 'safeZone'
             }
@@ -454,6 +458,10 @@ class CryptoPhysicsEngine {
         document.getElementById('assetCount').textContent = this.portfolio.length;
         document.getElementById('diversification').textContent = `${diversification.toFixed(0)}%`;
 
+        // Update progress bar with animation
+        const progressBar = document.getElementById('diversificationBar');
+        progressBar.style.width = `${diversification}%`;
+
         // Risk level
         const avgRisk = totalValue > 0 ? riskScore / totalValue : 0;
         const riskElement = document.getElementById('riskLevel');
@@ -483,8 +491,29 @@ class CryptoPhysicsEngine {
 
             if (crypto && quantity > 0) {
                 this.createCryptoAsset(crypto, quantity);
+                this.createParticleEffect(this.canvasContainer.clientWidth / 2, 100);
                 e.target.reset();
             }
+        });
+
+        // How It Works Modal
+        document.getElementById('howItWorksBtn').addEventListener('click', () => {
+            document.getElementById('howItWorksModal').classList.add('active');
+        });
+
+        document.getElementById('closeHowItWorks').addEventListener('click', () => {
+            document.getElementById('howItWorksModal').classList.remove('active');
+        });
+
+        document.getElementById('howItWorksModal').addEventListener('click', (e) => {
+            if (e.target.id === 'howItWorksModal') {
+                document.getElementById('howItWorksModal').classList.remove('active');
+            }
+        });
+
+        // Chaos Mode
+        document.getElementById('chaosMode').addEventListener('click', () => {
+            this.chaosMode();
         });
 
         // Stress Test
@@ -559,6 +588,38 @@ class CryptoPhysicsEngine {
                 });
             }
         });
+    }
+
+    chaosMode() {
+        // EXTREME forces - simulates market crash!
+        let intensity = 0;
+        const chaosInterval = setInterval(() => {
+            this.Composite.allBodies(this.world).forEach(body => {
+                if (!body.isStatic && body.label !== 'safeZone') {
+                    const forceMagnitude = 0.15 * body.mass;
+                    this.Body.applyForce(body, body.position, {
+                        x: (Math.random() - 0.5) * forceMagnitude,
+                        y: (Math.random() - 0.5) * forceMagnitude
+                    });
+                    // Random spin
+                    this.Body.setAngularVelocity(body, (Math.random() - 0.5) * 0.2);
+                }
+            });
+
+            intensity++;
+            if (intensity >= 10) {
+                clearInterval(chaosInterval);
+            }
+        }, 100);
+
+        // Visual feedback
+        const btn = document.getElementById('chaosMode');
+        btn.textContent = '🌪️ CAOS ATIVO!';
+        btn.style.animation = 'none';
+        setTimeout(() => {
+            btn.textContent = '🌪️ Modo Caos';
+            btn.style.animation = 'pulse 2s infinite';
+        }, 1500);
     }
 
     resetPositions() {
@@ -669,6 +730,21 @@ class CryptoPhysicsEngine {
 
         title.textContent = cryptoNames[type] || type;
 
+        // Calculate volatility classification
+        const absChange = Math.abs(change24h);
+        let volatilityClass = 'Baixa';
+        let volatilityColor = '#14F195';
+        if (absChange > 5) {
+            volatilityClass = 'Extrema';
+            volatilityColor = '#FF1493';
+        } else if (absChange > 2) {
+            volatilityClass = 'Alta';
+            volatilityColor = '#ff9500';
+        } else if (absChange > 1) {
+            volatilityClass = 'Média';
+            volatilityColor = '#00d9ff';
+        }
+
         bodyContent.innerHTML = `
             <div class="detail-row">
                 <span class="detail-label">Quantidade:</span>
@@ -685,12 +761,22 @@ class CryptoPhysicsEngine {
                 </span>
             </div>
             <div class="detail-row">
+                <span class="detail-label">Volatilidade:</span>
+                <span class="detail-value" style="color: ${volatilityColor}">
+                    ${volatilityClass} (${absChange.toFixed(2)}%)
+                </span>
+            </div>
+            <div class="detail-row">
                 <span class="detail-label">Valor Total:</span>
                 <span class="detail-value">$${value.toFixed(2)}</span>
             </div>
             <div class="detail-row">
-                <span class="detail-label">Velocidade:</span>
+                <span class="detail-label">Velocidade Física:</span>
                 <span class="detail-value">${this.Vector.magnitude(body.velocity).toFixed(2)} px/s</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Massa (Densidade):</span>
+                <span class="detail-value">${body.density.toFixed(3)}</span>
             </div>
         `;
 
@@ -700,6 +786,43 @@ class CryptoPhysicsEngine {
     closeModal() {
         document.getElementById('assetModal').classList.remove('active');
         this.selectedAsset = null;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // PARTICLE EFFECTS
+    // ═══════════════════════════════════════════════════════════
+
+    createParticleEffect(x, y) {
+        const particleCount = 15;
+        for (let i = 0; i < particleCount; i++) {
+            const angle = (Math.PI * 2 * i) / particleCount;
+            const velocity = 5 + Math.random() * 3;
+            const particle = this.Bodies.circle(x, y, 3 + Math.random() * 3, {
+                density: 0.001,
+                friction: 0.05,
+                restitution: 0.8,
+                render: {
+                    fillStyle: `hsl(${Math.random() * 360}, 100%, 50%)`,
+                    strokeStyle: '#ffffff',
+                    lineWidth: 1
+                },
+                label: 'particle'
+            });
+
+            this.Body.setVelocity(particle, {
+                x: Math.cos(angle) * velocity,
+                y: Math.sin(angle) * velocity
+            });
+
+            this.Composite.add(this.world, particle);
+            this.particles.push(particle);
+
+            // Remove particle after 2 seconds
+            setTimeout(() => {
+                this.Composite.remove(this.world, particle);
+                this.particles = this.particles.filter(p => p !== particle);
+            }, 2000);
+        }
     }
 
     // ═══════════════════════════════════════════════════════════

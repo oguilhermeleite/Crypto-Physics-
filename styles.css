@@ -85,6 +85,27 @@ body {
     font-size: 12px;
     color: var(--text-muted);
     font-style: italic;
+    margin-bottom: 10px;
+}
+
+.btn-help {
+    width: 100%;
+    padding: 8px;
+    background: rgba(0, 217, 255, 0.1);
+    border: 1px solid var(--neon-blue);
+    border-radius: 6px;
+    color: var(--neon-blue);
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 10px;
+}
+
+.btn-help:hover {
+    background: rgba(0, 217, 255, 0.2);
+    box-shadow: 0 0 15px rgba(0, 217, 255, 0.4);
+    transform: translateY(-2px);
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -164,8 +185,19 @@ body {
 }
 
 .btn-primary:hover {
-    box-shadow: 0 0 25px rgba(0, 217, 255, 0.6);
-    transform: translateY(-2px);
+    box-shadow: 0 0 30px rgba(0, 217, 255, 0.8);
+    transform: translateY(-3px) scale(1.02);
+}
+
+.btn-chaos {
+    background: linear-gradient(135deg, #8B00FF, #FF1493);
+    color: white;
+    margin-bottom: 10px;
+    animation: pulse 2s infinite;
+}
+
+.btn-chaos:hover {
+    box-shadow: 0 0 30px rgba(139, 0, 255, 0.8);
 }
 
 .btn-warning {
@@ -174,10 +206,18 @@ body {
     margin-bottom: 10px;
 }
 
+.btn-warning:hover {
+    box-shadow: 0 0 30px rgba(255, 149, 0, 0.6);
+}
+
 .btn-info {
     background: linear-gradient(135deg, var(--neon-green), #00b894);
     color: white;
     margin-bottom: 10px;
+}
+
+.btn-info:hover {
+    box-shadow: 0 0 30px rgba(20, 241, 149, 0.6);
 }
 
 .btn-success {
@@ -186,14 +226,22 @@ body {
     margin-bottom: 10px;
 }
 
+.btn-success:hover {
+    box-shadow: 0 0 30px rgba(0, 210, 255, 0.6);
+}
+
 .btn-danger {
     background: linear-gradient(135deg, var(--neon-pink), #d63031);
     color: white;
 }
 
+.btn-danger:hover {
+    box-shadow: 0 0 30px rgba(255, 0, 110, 0.6);
+}
+
 .btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 20px rgba(255, 255, 255, 0.2);
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 8px 25px rgba(255, 255, 255, 0.3);
 }
 
 .btn:active {
@@ -264,6 +312,30 @@ body {
 .risk-high {
     background: rgba(255, 0, 110, 0.2);
     color: var(--neon-pink);
+}
+
+/* Progress Bar for Diversification */
+.progress-bar-container {
+    width: 100%;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-top: 10px;
+    border: 1px solid rgba(0, 217, 255, 0.2);
+}
+
+.progress-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--neon-blue), var(--neon-purple), var(--neon-pink));
+    border-radius: 10px;
+    transition: width 0.5s ease, box-shadow 0.3s ease;
+    box-shadow: 0 0 10px var(--neon-blue);
+}
+
+.progress-bar:hover {
+    box-shadow: 0 0 20px var(--neon-blue);
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -376,15 +448,16 @@ body {
 }
 
 .modal-content {
-    background: var(--bg-card);
+    background: rgba(26, 31, 58, 0.95);
+    backdrop-filter: blur(10px);
     border: 2px solid var(--neon-blue);
-    border-radius: 12px;
+    border-radius: 16px;
     padding: 30px;
     max-width: 500px;
     width: 90%;
-    box-shadow: 0 0 40px rgba(0, 217, 255, 0.4);
+    box-shadow: 0 0 50px rgba(0, 217, 255, 0.5);
     position: relative;
-    animation: modalSlideIn 0.3s ease;
+    animation: modalSlideIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
 @keyframes modalSlideIn {
@@ -441,6 +514,184 @@ body {
     font-weight: bold;
 }
 
+/* Large Modal for "Como Funciona" */
+.modal-large {
+    max-width: 800px;
+    max-height: 85vh;
+    overflow-y: auto;
+}
+
+.modal-large::-webkit-scrollbar {
+    width: 8px;
+}
+
+.modal-large::-webkit-scrollbar-track {
+    background: var(--bg-darker);
+    border-radius: 10px;
+}
+
+.modal-large::-webkit-scrollbar-thumb {
+    background: var(--neon-blue);
+    border-radius: 10px;
+}
+
+.modal-title-fancy {
+    font-size: 28px;
+    color: var(--neon-blue);
+    margin-bottom: 25px;
+    text-shadow: 0 0 15px rgba(0, 217, 255, 0.6);
+    text-align: center;
+}
+
+.how-it-works-content {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+}
+
+.info-section {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(0, 217, 255, 0.2);
+    border-radius: 12px;
+    padding: 20px;
+    transition: all 0.3s ease;
+}
+
+.info-section:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(0, 217, 255, 0.4);
+    box-shadow: 0 0 20px rgba(0, 217, 255, 0.2);
+}
+
+.info-section h3 {
+    color: var(--neon-blue);
+    font-size: 18px;
+    margin-bottom: 15px;
+    text-shadow: 0 0 8px rgba(0, 217, 255, 0.4);
+}
+
+.info-section p {
+    line-height: 1.8;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+}
+
+.info-section ul {
+    list-style: none;
+    padding-left: 0;
+}
+
+.info-section ul li {
+    padding: 8px 0;
+    padding-left: 25px;
+    position: relative;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+.info-section ul li:before {
+    content: "▸";
+    position: absolute;
+    left: 0;
+    color: var(--neon-blue);
+    font-weight: bold;
+}
+
+/* Asset Examples Grid */
+.asset-examples {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.asset-card {
+    background: rgba(0, 217, 255, 0.05);
+    border: 1px solid rgba(0, 217, 255, 0.2);
+    border-radius: 10px;
+    padding: 15px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.asset-card:hover {
+    background: rgba(0, 217, 255, 0.1);
+    border-color: var(--neon-blue);
+    transform: translateY(-5px);
+    box-shadow: 0 5px 20px rgba(0, 217, 255, 0.3);
+}
+
+.asset-icon {
+    font-size: 32px;
+    display: block;
+    margin-bottom: 10px;
+}
+
+.asset-card h4 {
+    color: var(--neon-blue);
+    font-size: 14px;
+    margin-bottom: 8px;
+}
+
+.asset-card p {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+/* Controls Grid */
+.controls-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin-top: 15px;
+}
+
+.control-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    background: rgba(0, 217, 255, 0.05);
+    border: 1px solid rgba(0, 217, 255, 0.15);
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.control-item:hover {
+    background: rgba(0, 217, 255, 0.1);
+    border-color: var(--neon-blue);
+    transform: translateX(5px);
+}
+
+.control-emoji {
+    font-size: 24px;
+    min-width: 30px;
+}
+
+.control-item strong {
+    color: var(--neon-blue);
+    font-size: 13px;
+}
+
+/* Tips Section */
+.tips-section {
+    background: linear-gradient(135deg, rgba(0, 217, 255, 0.05), rgba(131, 56, 236, 0.05));
+    border: 1px solid var(--neon-purple);
+}
+
+.tips-list li {
+    padding: 10px 0;
+    padding-left: 30px;
+}
+
+.tips-list li:before {
+    content: "💡";
+    position: absolute;
+    left: 0;
+    font-size: 16px;
+}
+
 /* ═══════════════════════════════════════════════════════════
    ANIMAÇÕES GLOBAIS
    ═══════════════════════════════════════════════════════════ */
@@ -452,6 +703,49 @@ body {
     50% {
         box-shadow: 0 0 40px rgba(0, 217, 255, 0.6);
     }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 20px rgba(139, 0, 255, 0.4);
+    }
+    50% {
+        transform: scale(1.02);
+        box-shadow: 0 0 30px rgba(139, 0, 255, 0.7);
+    }
+}
+
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+/* Glassmorphism Tooltips */
+[title] {
+    position: relative;
+}
+
+button[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 110%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 217, 255, 0.15);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--neon-blue);
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 11px;
+    white-space: nowrap;
+    z-index: 1000;
+    box-shadow: 0 0 20px rgba(0, 217, 255, 0.4);
+    animation: float 2s ease-in-out infinite;
 }
 
 /* ═══════════════════════════════════════════════════════════
