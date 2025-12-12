@@ -1,42 +1,31 @@
 // ═══════════════════════════════════════════════════════════
-// CRYPTOPHYSICS PORTFOLIO ANALYZER
-// Engine de Física 2D para Visualização de Portfólio Cripto
+// CRYPTOPHYSICS PORTFOLIO ANALYZER - TETRIS EDITION
+// Sistema de Visualização com Blocos que se Encaixam
 // ═══════════════════════════════════════════════════════════
 
-class CryptoPhysicsEngine {
+class CryptoTetrisEngine {
     constructor() {
-        // Matter.js modules
-        this.Engine = Matter.Engine;
-        this.Render = Matter.Render;
-        this.Runner = Matter.Runner;
-        this.Bodies = Matter.Bodies;
-        this.Composite = Matter.Composite;
-        this.Mouse = Matter.Mouse;
-        this.MouseConstraint = Matter.MouseConstraint;
-        this.Events = Matter.Events;
-        this.Body = Matter.Body;
-        this.Vector = Matter.Vector;
-
-        // Engine setup
-        this.engine = this.Engine.create();
-        this.world = this.engine.world;
-        this.runner = null;
-
         // Canvas setup
-        this.canvasContainer = document.getElementById('physicsCanvas');
-        this.render = null;
+        this.canvas = document.getElementById('tetrisCanvas');
+        this.ctx = this.canvas.getContext('2d');
+
+        // Grid configuration
+        this.cellSize = 20; // Tamanho de cada célula do grid
+        this.gridWidth = 0;
+        this.gridHeight = 0;
+        this.grid = [];
 
         // Portfolio data
         this.portfolio = [];
+        this.blocks = [];
         this.prices = {};
-        this.isPaused = false;
-        this.hasGravity = true;
 
-        // Selected asset for modal
-        this.selectedAsset = null;
+        // Animation state
+        this.fallingBlock = null;
+        this.animationFrame = null;
 
-        // Particle effects
-        this.particles = [];
+        // Selected block for modal
+        this.selectedBlock = null;
 
         // Initialize
         this.init();
@@ -48,670 +37,436 @@ class CryptoPhysicsEngine {
 
     init() {
         this.setupCanvas();
-        this.setupPhysicsWorld();
-        this.setupControls();
         this.setupEventListeners();
         this.loadPrices();
         this.loadSavedPortfolio();
-        this.startEngine();
+        this.startRenderLoop();
     }
 
     setupCanvas() {
-        const width = this.canvasContainer.clientWidth;
-        const height = this.canvasContainer.clientHeight;
+        const container = this.canvas.parentElement;
+        const width = container.clientWidth;
+        const height = container.clientHeight;
 
-        this.render = this.Render.create({
-            element: this.canvasContainer,
-            engine: this.engine,
-            options: {
-                width: width,
-                height: height,
-                wireframes: false,
-                background: '#050816',
-                pixelRatio: window.devicePixelRatio
-            }
-        });
+        this.canvas.width = width;
+        this.canvas.height = height;
 
-        this.Render.run(this.render);
-    }
+        // Calculate grid dimensions (70% of canvas width for play area)
+        const playWidth = Math.floor(width * 0.7);
+        this.gridWidth = Math.floor(playWidth / this.cellSize);
+        this.gridHeight = Math.floor(height / this.cellSize);
 
-    setupPhysicsWorld() {
-        const width = this.canvasContainer.clientWidth;
-        const height = this.canvasContainer.clientHeight;
-
-        // Gravidade
-        this.engine.world.gravity.y = 1;
-
-        // Paredes
-        const wallOptions = {
-            isStatic: true,
-            render: {
-                fillStyle: 'rgba(0, 217, 255, 0.2)',
-                strokeStyle: '#00d9ff',
-                lineWidth: 2
-            }
-        };
-
-        const ground = this.Bodies.rectangle(width / 2, height - 10, width, 20, wallOptions);
-        const leftWall = this.Bodies.rectangle(10, height / 2, 20, height, wallOptions);
-        const rightWall = this.Bodies.rectangle(width - 10, height / 2, 20, height, wallOptions);
-        const ceiling = this.Bodies.rectangle(width / 2, 10, width, 20, wallOptions);
-
-        this.Composite.add(this.world, [ground, leftWall, rightWall, ceiling]);
-
-        // Zona Segura (visual reference)
-        this.createSafeZone();
-    }
-
-    createSafeZone() {
-        const width = this.canvasContainer.clientWidth;
-        const height = this.canvasContainer.clientHeight;
-
-        const safeZone = this.Bodies.rectangle(
-            width / 2,
-            height / 2 - 50,
-            width - 200,
-            height - 300,
-            {
-                isStatic: true,
-                isSensor: true,
-                render: {
-                    fillStyle: 'rgba(20, 241, 149, 0.03)',
-                    strokeStyle: '#14F195',
-                    lineWidth: 3,
-                    lineDash: [10, 10],
-                    opacity: 0.6
-                },
-                label: 'safeZone'
-            }
+        // Initialize empty grid
+        this.grid = Array(this.gridHeight).fill(null).map(() =>
+            Array(this.gridWidth).fill(null)
         );
 
-        this.Composite.add(this.world, safeZone);
-    }
-
-    setupControls() {
-        // Mouse interaction
-        const mouse = this.Mouse.create(this.render.canvas);
-        const mouseConstraint = this.MouseConstraint.create(this.engine, {
-            mouse: mouse,
-            constraint: {
-                stiffness: 0.2,
-                render: {
-                    visible: true,
-                    strokeStyle: '#00d9ff',
-                    lineWidth: 2
-                }
-            }
-        });
-
-        this.Composite.add(this.world, mouseConstraint);
-
-        // Keep the mouse in sync with rendering
-        this.render.mouse = mouse;
-
-        // Double click para abrir modal
-        this.Events.on(mouseConstraint, 'mousedown', (event) => {
-            const clickedBody = event.source.body;
-            if (clickedBody && clickedBody.label !== 'safeZone' && !clickedBody.isStatic) {
-                const now = Date.now();
-                if (clickedBody.lastClick && (now - clickedBody.lastClick) < 300) {
-                    this.openAssetModal(clickedBody);
-                }
-                clickedBody.lastClick = now;
-            }
-        });
-
-        // Highlight on hover
-        this.Events.on(mouseConstraint, 'mousemove', (event) => {
-            const hoveredBody = event.source.body;
-            this.Composite.allBodies(this.world).forEach(body => {
-                if (body.render && !body.isStatic && body.label !== 'safeZone') {
-                    if (body === hoveredBody) {
-                        body.render.lineWidth = 3;
-                    } else {
-                        body.render.lineWidth = 2;
-                    }
-                }
-            });
-        });
-    }
-
-    startEngine() {
-        this.runner = this.Runner.create();
-        this.Runner.run(this.runner, this.engine);
+        this.offsetX = (width - (this.gridWidth * this.cellSize)) / 2;
+        this.offsetY = 20;
     }
 
     // ═══════════════════════════════════════════════════════════
-    // CRIAÇÃO DE ATIVOS CRYPTO COM PROPRIEDADES FÍSICAS
+    // DEFINIÇÃO DE FORMAS (TETRIS SHAPES)
     // ═══════════════════════════════════════════════════════════
 
-    createCryptoAsset(crypto, quantity) {
-        const width = this.canvasContainer.clientWidth;
-        const spawnX = width / 2 + (Math.random() - 0.5) * 200;
-        const spawnY = 100;
-
-        let bodies = [];
+    getShapeDefinition(crypto, quantity) {
+        // Quantidade afeta o número de blocos (mais quantidade = mais blocos)
+        const multiplier = Math.ceil(quantity);
 
         switch (crypto) {
             case 'bitcoin':
-                bodies = this.createBitcoin(spawnX, spawnY, quantity);
-                break;
+                // Quadrado 4x4 laranja
+                return {
+                    shape: [
+                        [1, 1, 1, 1],
+                        [1, 1, 1, 1],
+                        [1, 1, 1, 1],
+                        [1, 1, 1, 1]
+                    ],
+                    color: '#F7931A',
+                    borderColor: '#ff9500',
+                    label: '₿',
+                    count: Math.min(multiplier, 3) // Máximo 3 blocos BTC
+                };
+
             case 'ethereum':
-                bodies = this.createEthereum(spawnX, spawnY, quantity);
-                break;
+                // Retângulo 4x3 azul
+                return {
+                    shape: [
+                        [1, 1, 1, 1],
+                        [1, 1, 1, 1],
+                        [1, 1, 1, 1]
+                    ],
+                    color: '#627EEA',
+                    borderColor: '#3c3c3d',
+                    label: 'Ξ',
+                    count: Math.min(multiplier, 4)
+                };
+
             case 'solana':
-                bodies = this.createSolana(spawnX, spawnY, quantity);
-                break;
-            case 'binancecoin':
-                bodies = this.createBinanceCoin(spawnX, spawnY, quantity);
-                break;
+                // L-Shape 3x3 verde
+                return {
+                    shape: [
+                        [1, 0, 0],
+                        [1, 0, 0],
+                        [1, 1, 1]
+                    ],
+                    color: '#14F195',
+                    borderColor: '#00ff88',
+                    label: '◎',
+                    count: Math.min(multiplier, 5)
+                };
+
             case 'cardano':
-                bodies = this.createCardano(spawnX, spawnY, quantity);
-                break;
+                // T-Shape 3x2 azul escuro
+                return {
+                    shape: [
+                        [1, 1, 1],
+                        [0, 1, 0]
+                    ],
+                    color: '#0033AD',
+                    borderColor: '#3399ff',
+                    label: '₳',
+                    count: Math.min(multiplier, 5)
+                };
+
             case 'dogecoin':
             case 'shiba-inu':
-                bodies = this.createMemecoin(spawnX, spawnY, quantity, crypto);
-                break;
-        }
+                // Cubinhos 1x1 rosa (4-6 blocos)
+                const cubeCount = Math.min(4 + Math.floor(quantity * 2), 10);
+                return {
+                    shape: [[1]],
+                    color: crypto === 'dogecoin' ? '#C2A633' : '#FF1493',
+                    borderColor: crypto === 'dogecoin' ? '#FFD700' : '#ff69b4',
+                    label: '🐕',
+                    count: cubeCount
+                };
 
-        bodies.forEach(body => {
-            this.Composite.add(this.world, body);
+            default:
+                return {
+                    shape: [[1, 1], [1, 1]],
+                    color: '#00d9ff',
+                    borderColor: '#0099cc',
+                    label: '?',
+                    count: 1
+                };
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // ADICIONAR BLOCOS AO PORTFÓLIO
+    // ═══════════════════════════════════════════════════════════
+
+    addAsset(crypto, quantity) {
+        const definition = this.getShapeDefinition(crypto, quantity);
+
+        for (let i = 0; i < definition.count; i++) {
+            const block = {
+                id: Date.now() + i,
+                crypto: crypto,
+                quantity: quantity / definition.count,
+                shape: definition.shape,
+                color: definition.color,
+                borderColor: definition.borderColor,
+                label: definition.label,
+                x: Math.floor(this.gridWidth / 2) - Math.floor(definition.shape[0].length / 2),
+                y: -definition.shape.length,
+                placed: false
+            };
+
+            this.blocks.push(block);
             this.portfolio.push({
                 crypto: crypto,
-                quantity: quantity,
-                body: body,
-                timestamp: Date.now()
+                quantity: quantity / definition.count,
+                block: block,
+                timestamp: Date.now() + i
             });
-        });
+
+            // Animar queda com delay
+            setTimeout(() => {
+                this.dropBlock(block);
+            }, i * 600);
+        }
 
         this.updateMetrics();
-        return bodies;
     }
 
-    // BITCOIN - "A Rocha" 🟧
-    createBitcoin(x, y, quantity) {
-        const size = Math.min(80 + quantity * 5, 120);
-        const body = this.Bodies.rectangle(x, y, size, size, {
-            density: 0.1,
-            friction: 0.9,
-            restitution: 0.1,
-            render: {
-                fillStyle: '#F7931A',
-                strokeStyle: '#ff9500',
-                lineWidth: 2
-            },
-            label: 'bitcoin',
-            cryptoData: { type: 'bitcoin', quantity: quantity }
-        });
+    // ═══════════════════════════════════════════════════════════
+    // SISTEMA DE QUEDA E ENCAIXE
+    // ═══════════════════════════════════════════════════════════
 
-        // Add text label
-        body.render.sprite = {
-            texture: this.createTextTexture('₿', '#FFFFFF', size),
-            xScale: 1,
-            yScale: 1
-        };
+    dropBlock(block) {
+        this.fallingBlock = block;
 
-        return [body];
-    }
-
-    // ETHEREUM - "O Tijolo" 🟦
-    createEthereum(x, y, quantity) {
-        const size = Math.min(70 + quantity * 3, 100);
-        const body = this.Bodies.rectangle(x, y, size, size, {
-            density: 0.08,
-            friction: 0.8,
-            restitution: 0.2,
-            render: {
-                fillStyle: '#627EEA',
-                strokeStyle: '#7c9ff5',
-                lineWidth: 2
-            },
-            label: 'ethereum',
-            cryptoData: { type: 'ethereum', quantity: quantity }
-        });
-
-        body.render.sprite = {
-            texture: this.createTextTexture('Ξ', '#FFFFFF', size),
-            xScale: 1,
-            yScale: 1
-        };
-
-        return [body];
-    }
-
-    // SOLANA - "O Pentágono" 🟩
-    createSolana(x, y, quantity) {
-        const size = Math.min(60 + quantity * 2, 90);
-        const sides = 5;
-        const body = this.Bodies.polygon(x, y, sides, size / 2, {
-            density: 0.05,
-            friction: 0.5,
-            restitution: 0.4,
-            render: {
-                fillStyle: '#14F195',
-                strokeStyle: '#00ff88',
-                lineWidth: 2
-            },
-            label: 'solana',
-            cryptoData: { type: 'solana', quantity: quantity }
-        });
-
-        body.render.sprite = {
-            texture: this.createTextTexture('◎', '#000000', size),
-            xScale: 1,
-            yScale: 1
-        };
-
-        return [body];
-    }
-
-    // BINANCE COIN - "O Diamante" 🟨
-    createBinanceCoin(x, y, quantity) {
-        const size = Math.min(65 + quantity * 3, 95);
-        const body = this.Bodies.polygon(x, y, 4, size / 2, {
-            density: 0.06,
-            friction: 0.7,
-            restitution: 0.3,
-            angle: Math.PI / 4,
-            render: {
-                fillStyle: '#F3BA2F',
-                strokeStyle: '#ffd700',
-                lineWidth: 2
-            },
-            label: 'binancecoin',
-            cryptoData: { type: 'binancecoin', quantity: quantity }
-        });
-
-        body.render.sprite = {
-            texture: this.createTextTexture('◆', '#000000', size),
-            xScale: 1,
-            yScale: 1
-        };
-
-        return [body];
-    }
-
-    // CARDANO - "O Hexágono" 🔵
-    createCardano(x, y, quantity) {
-        const size = Math.min(55 + quantity * 2, 85);
-        const body = this.Bodies.polygon(x, y, 6, size / 2, {
-            density: 0.04,
-            friction: 0.6,
-            restitution: 0.35,
-            render: {
-                fillStyle: '#0033AD',
-                strokeStyle: '#3399ff',
-                lineWidth: 2
-            },
-            label: 'cardano',
-            cryptoData: { type: 'cardano', quantity: quantity }
-        });
-
-        body.render.sprite = {
-            texture: this.createTextTexture('₳', '#FFFFFF', size),
-            xScale: 1,
-            yScale: 1
-        };
-
-        return [body];
-    }
-
-    // MEMECOIN - "Nuvem Caótica" 🌸
-    createMemecoin(x, y, quantity, type) {
-        const bodies = [];
-        const count = Math.min(Math.floor(quantity * 10), 20);
-
-        for (let i = 0; i < count; i++) {
-            const offsetX = (Math.random() - 0.5) * 100;
-            const offsetY = (Math.random() - 0.5) * 100;
-            const size = 12 + Math.random() * 8;
-
-            const body = this.Bodies.circle(x + offsetX, y + offsetY, size, {
-                density: 0.005,
-                friction: 0.1,
-                restitution: 0.95,
-                render: {
-                    fillStyle: type === 'dogecoin' ? '#C2A633' : '#FF1493',
-                    strokeStyle: type === 'dogecoin' ? '#FFD700' : '#ff69b4',
-                    lineWidth: 2
-                },
-                label: type,
-                cryptoData: { type: type, quantity: quantity / count }
-            });
-
-            if (i === 0) {
-                body.render.sprite = {
-                    texture: this.createTextTexture('🐕', '#FFFFFF', size * 2),
-                    xScale: 1,
-                    yScale: 1
-                };
+        const dropInterval = setInterval(() => {
+            if (!this.canMove(block, 0, 1)) {
+                // Chegou no chão ou em outro bloco
+                this.placeBlock(block);
+                this.fallingBlock = null;
+                this.createPlaceEffect(block);
+                clearInterval(dropInterval);
+            } else {
+                block.y++;
             }
-
-            bodies.push(body);
-        }
-
-        return bodies;
+        }, 100); // Velocidade de queda: 100ms por célula
     }
 
-    // Helper: Create text texture (simplified - in production use canvas)
-    createTextTexture(text, color, size) {
-        // Matter.js doesn't natively support text rendering well
-        // This is a placeholder - in production, you'd create a canvas texture
-        return null;
-    }
+    canMove(block, dx, dy) {
+        const newX = block.x + dx;
+        const newY = block.y + dy;
 
-    // ═══════════════════════════════════════════════════════════
-    // API DE PREÇOS (CoinGecko)
-    // ═══════════════════════════════════════════════════════════
+        for (let row = 0; row < block.shape.length; row++) {
+            for (let col = 0; col < block.shape[row].length; col++) {
+                if (block.shape[row][col]) {
+                    const gridX = newX + col;
+                    const gridY = newY + row;
 
-    async loadPrices() {
-        try {
-            const ids = 'bitcoin,ethereum,solana,binancecoin,cardano,dogecoin,shiba-inu';
-            const response = await fetch(
-                `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`
-            );
-            const data = await response.json();
-            this.prices = data;
-            this.updateMetrics();
-        } catch (error) {
-            console.error('Erro ao carregar preços:', error);
-            // Fallback prices
-            this.prices = {
-                bitcoin: { usd: 45000, usd_24h_change: 2.5 },
-                ethereum: { usd: 2500, usd_24h_change: 3.1 },
-                solana: { usd: 100, usd_24h_change: -1.2 },
-                binancecoin: { usd: 300, usd_24h_change: 1.8 },
-                cardano: { usd: 0.5, usd_24h_change: 0.5 },
-                dogecoin: { usd: 0.08, usd_24h_change: -2.1 },
-                'shiba-inu': { usd: 0.000009, usd_24h_change: 5.3 }
-            };
-        }
-    }
+                    // Check boundaries
+                    if (gridX < 0 || gridX >= this.gridWidth || gridY >= this.gridHeight) {
+                        return false;
+                    }
 
-    // ═══════════════════════════════════════════════════════════
-    // MÉTRICAS DO PORTFÓLIO
-    // ═══════════════════════════════════════════════════════════
-
-    updateMetrics() {
-        let totalValue = 0;
-        let riskScore = 0;
-        const cryptoCounts = {};
-
-        this.portfolio.forEach(asset => {
-            const price = this.prices[asset.crypto]?.usd || 0;
-            const value = price * asset.quantity;
-            totalValue += value;
-
-            // Risk scoring
-            const volatility = Math.abs(this.prices[asset.crypto]?.usd_24h_change || 0);
-            riskScore += volatility * value;
-
-            // Count unique cryptos
-            cryptoCounts[asset.crypto] = (cryptoCounts[asset.crypto] || 0) + 1;
-        });
-
-        const uniqueCryptos = Object.keys(cryptoCounts).length;
-        const diversification = Math.min((uniqueCryptos / 7) * 100, 100);
-
-        // Update UI
-        document.getElementById('totalValue').textContent = `$${totalValue.toFixed(2)}`;
-        document.getElementById('assetCount').textContent = this.portfolio.length;
-        document.getElementById('diversification').textContent = `${diversification.toFixed(0)}%`;
-
-        // Update progress bar with animation
-        const progressBar = document.getElementById('diversificationBar');
-        progressBar.style.width = `${diversification}%`;
-
-        // Risk level
-        const avgRisk = totalValue > 0 ? riskScore / totalValue : 0;
-        const riskElement = document.getElementById('riskLevel');
-
-        if (avgRisk < 2) {
-            riskElement.textContent = 'Baixo';
-            riskElement.className = 'metric-value risk-indicator risk-low';
-        } else if (avgRisk < 4) {
-            riskElement.textContent = 'Médio';
-            riskElement.className = 'metric-value risk-indicator risk-medium';
-        } else {
-            riskElement.textContent = 'Alto';
-            riskElement.className = 'metric-value risk-indicator risk-high';
-        }
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    // EVENT LISTENERS
-    // ═══════════════════════════════════════════════════════════
-
-    setupEventListeners() {
-        // Add Asset Form
-        document.getElementById('addAssetForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const crypto = document.getElementById('assetSelect').value;
-            const quantity = parseFloat(document.getElementById('quantityInput').value);
-
-            if (crypto && quantity > 0) {
-                this.createCryptoAsset(crypto, quantity);
-                this.createParticleEffect(this.canvasContainer.clientWidth / 2, 100);
-                e.target.reset();
-            }
-        });
-
-        // How It Works Modal
-        document.getElementById('howItWorksBtn').addEventListener('click', () => {
-            document.getElementById('howItWorksModal').classList.add('active');
-        });
-
-        document.getElementById('closeHowItWorks').addEventListener('click', () => {
-            document.getElementById('howItWorksModal').classList.remove('active');
-        });
-
-        document.getElementById('howItWorksModal').addEventListener('click', (e) => {
-            if (e.target.id === 'howItWorksModal') {
-                document.getElementById('howItWorksModal').classList.remove('active');
-            }
-        });
-
-        // Chaos Mode
-        document.getElementById('chaosMode').addEventListener('click', () => {
-            this.chaosMode();
-        });
-
-        // Stress Test
-        document.getElementById('stressTestBtn').addEventListener('click', () => {
-            this.stressTest();
-        });
-
-        // Reset Positions
-        document.getElementById('resetZoneBtn').addEventListener('click', () => {
-            this.resetPositions();
-        });
-
-        // Save Portfolio
-        document.getElementById('saveBtn').addEventListener('click', () => {
-            this.savePortfolio();
-        });
-
-        // Clear All
-        document.getElementById('clearBtn').addEventListener('click', () => {
-            if (confirm('Tem certeza que deseja limpar todo o portfólio?')) {
-                this.clearPortfolio();
-            }
-        });
-
-        // Pause/Resume
-        document.getElementById('pauseBtn').addEventListener('click', () => {
-            this.togglePause();
-        });
-
-        // Toggle Gravity
-        document.getElementById('gravityBtn').addEventListener('click', () => {
-            this.toggleGravity();
-        });
-
-        // Modal Close
-        document.querySelector('.modal-close').addEventListener('click', () => {
-            this.closeModal();
-        });
-
-        document.getElementById('assetModal').addEventListener('click', (e) => {
-            if (e.target.id === 'assetModal') {
-                this.closeModal();
-            }
-        });
-
-        // Remove Asset from Modal
-        document.getElementById('removeAssetBtn').addEventListener('click', () => {
-            if (this.selectedAsset) {
-                this.removeAsset(this.selectedAsset);
-                this.closeModal();
-            }
-        });
-
-        // Window resize
-        window.addEventListener('resize', () => {
-            this.handleResize();
-        });
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    // ACTIONS
-    // ═══════════════════════════════════════════════════════════
-
-    stressTest() {
-        // Apply random forces to all bodies
-        this.Composite.allBodies(this.world).forEach(body => {
-            if (!body.isStatic) {
-                const forceMagnitude = 0.05 * body.mass;
-                this.Body.applyForce(body, body.position, {
-                    x: (Math.random() - 0.5) * forceMagnitude,
-                    y: (Math.random() - 0.5) * forceMagnitude
-                });
-            }
-        });
-    }
-
-    chaosMode() {
-        // EXTREME forces - simulates market crash!
-        let intensity = 0;
-        const chaosInterval = setInterval(() => {
-            this.Composite.allBodies(this.world).forEach(body => {
-                if (!body.isStatic && body.label !== 'safeZone') {
-                    const forceMagnitude = 0.15 * body.mass;
-                    this.Body.applyForce(body, body.position, {
-                        x: (Math.random() - 0.5) * forceMagnitude,
-                        y: (Math.random() - 0.5) * forceMagnitude
-                    });
-                    // Random spin
-                    this.Body.setAngularVelocity(body, (Math.random() - 0.5) * 0.2);
+                    // Check collision with placed blocks
+                    if (gridY >= 0 && this.grid[gridY] && this.grid[gridY][gridX]) {
+                        return false;
+                    }
                 }
-            });
-
-            intensity++;
-            if (intensity >= 10) {
-                clearInterval(chaosInterval);
             }
-        }, 100);
+        }
 
-        // Visual feedback
-        const btn = document.getElementById('chaosMode');
-        btn.textContent = '🌪️ CAOS ATIVO!';
-        btn.style.animation = 'none';
-        setTimeout(() => {
-            btn.textContent = '🌪️ Modo Caos';
-            btn.style.animation = 'pulse 2s infinite';
-        }, 1500);
+        return true;
     }
 
-    resetPositions() {
-        const width = this.canvasContainer.clientWidth;
-        const height = this.canvasContainer.clientHeight;
+    placeBlock(block) {
+        block.placed = true;
 
-        this.Composite.allBodies(this.world).forEach(body => {
-            if (!body.isStatic && body.label !== 'safeZone') {
-                this.Body.setPosition(body, {
-                    x: width / 2 + (Math.random() - 0.5) * 200,
-                    y: height / 2
-                });
-                this.Body.setVelocity(body, { x: 0, y: 0 });
-                this.Body.setAngularVelocity(body, 0);
+        // Add to grid
+        for (let row = 0; row < block.shape.length; row++) {
+            for (let col = 0; col < block.shape[row].length; col++) {
+                if (block.shape[row][col]) {
+                    const gridY = block.y + row;
+                    const gridX = block.x + col;
+
+                    if (gridY >= 0 && gridY < this.gridHeight && gridX >= 0 && gridX < this.gridWidth) {
+                        this.grid[gridY][gridX] = block;
+                    }
+                }
+            }
+        }
+
+        this.updateMetrics();
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // REORGANIZAR BLOCOS (OTIMIZAÇÃO)
+    // ═══════════════════════════════════════════════════════════
+
+    reorganizeBlocks() {
+        // Clear grid
+        this.grid = Array(this.gridHeight).fill(null).map(() =>
+            Array(this.gridWidth).fill(null)
+        );
+
+        // Reset all blocks
+        this.blocks.forEach(block => {
+            block.placed = false;
+            block.y = -block.shape.length;
+        });
+
+        // Re-place all blocks optimally
+        this.blocks.forEach((block, index) => {
+            setTimeout(() => {
+                this.findOptimalPosition(block);
+                this.placeBlock(block);
+                this.createPlaceEffect(block);
+            }, index * 200);
+        });
+    }
+
+    findOptimalPosition(block) {
+        // Try to find best X position (centered or filling gaps)
+        for (let x = 0; x <= this.gridWidth - block.shape[0].length; x++) {
+            block.x = x;
+
+            // Drop from top
+            for (let y = 0; y < this.gridHeight; y++) {
+                block.y = y;
+                if (!this.canMove(block, 0, 1)) {
+                    return; // Found position
+                }
+            }
+        }
+
+        // Fallback: center
+        block.x = Math.floor(this.gridWidth / 2) - Math.floor(block.shape[0].length / 2);
+        block.y = 0;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // EFEITOS VISUAIS
+    // ═══════════════════════════════════════════════════════════
+
+    createPlaceEffect(block) {
+        // Particle effect quando bloco encaixa
+        const centerX = (block.x + block.shape[0].length / 2) * this.cellSize + this.offsetX;
+        const centerY = (block.y + block.shape.length / 2) * this.cellSize + this.offsetY;
+
+        for (let i = 0; i < 15; i++) {
+            setTimeout(() => {
+                this.createParticle(centerX, centerY, block.color);
+            }, i * 20);
+        }
+    }
+
+    createParticle(x, y, color) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 2 + Math.random() * 3;
+        let px = x;
+        let py = y;
+        let vx = Math.cos(angle) * speed;
+        let vy = Math.sin(angle) * speed;
+        let life = 30;
+
+        const animateParticle = () => {
+            if (life-- <= 0) return;
+
+            this.ctx.save();
+            this.ctx.globalAlpha = life / 30;
+            this.ctx.fillStyle = color;
+            this.ctx.beginPath();
+            this.ctx.arc(px, py, 3, 0, Math.PI * 2);
+            this.ctx.fill();
+            this.ctx.restore();
+
+            px += vx;
+            py += vy;
+            vy += 0.2; // Gravity
+
+            requestAnimationFrame(animateParticle);
+        };
+
+        animateParticle();
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // RENDERIZAÇÃO
+    // ═══════════════════════════════════════════════════════════
+
+    startRenderLoop() {
+        const render = () => {
+            this.clear();
+            this.drawGrid();
+            this.drawBlocks();
+            this.animationFrame = requestAnimationFrame(render);
+        };
+        render();
+    }
+
+    clear() {
+        this.ctx.fillStyle = '#050816';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+
+    drawGrid() {
+        this.ctx.strokeStyle = 'rgba(0, 217, 255, 0.1)';
+        this.ctx.lineWidth = 1;
+
+        // Vertical lines
+        for (let x = 0; x <= this.gridWidth; x++) {
+            const px = x * this.cellSize + this.offsetX;
+            this.ctx.beginPath();
+            this.ctx.moveTo(px, this.offsetY);
+            this.ctx.lineTo(px, this.gridHeight * this.cellSize + this.offsetY);
+            this.ctx.stroke();
+        }
+
+        // Horizontal lines
+        for (let y = 0; y <= this.gridHeight; y++) {
+            const py = y * this.cellSize + this.offsetY;
+            this.ctx.beginPath();
+            this.ctx.moveTo(this.offsetX, py);
+            this.ctx.lineTo(this.gridWidth * this.cellSize + this.offsetX, py);
+            this.ctx.stroke();
+        }
+    }
+
+    drawBlocks() {
+        this.blocks.forEach(block => {
+            if (block.y >= -block.shape.length) { // Only draw visible blocks
+                this.drawBlock(block);
             }
         });
     }
 
-    savePortfolio() {
-        const portfolioData = this.portfolio.map(asset => ({
-            crypto: asset.crypto,
-            quantity: asset.quantity,
-            timestamp: asset.timestamp
-        }));
+    drawBlock(block) {
+        for (let row = 0; row < block.shape.length; row++) {
+            for (let col = 0; col < block.shape[row].length; col++) {
+                if (block.shape[row][col]) {
+                    const x = (block.x + col) * this.cellSize + this.offsetX;
+                    const y = (block.y + row) * this.cellSize + this.offsetY;
 
-        localStorage.setItem('cryptoPhysicsPortfolio', JSON.stringify(portfolioData));
-        alert('💾 Portfólio salvo com sucesso!');
-    }
+                    // Draw cell with glow
+                    this.ctx.save();
 
-    loadSavedPortfolio() {
-        const saved = localStorage.getItem('cryptoPhysicsPortfolio');
-        if (saved) {
-            try {
-                const portfolioData = JSON.parse(saved);
-                portfolioData.forEach(asset => {
-                    setTimeout(() => {
-                        this.createCryptoAsset(asset.crypto, asset.quantity);
-                    }, 100);
-                });
-            } catch (error) {
-                console.error('Erro ao carregar portfólio salvo:', error);
+                    // Glow effect
+                    this.ctx.shadowColor = block.color;
+                    this.ctx.shadowBlur = 15;
+
+                    // Fill
+                    this.ctx.fillStyle = block.color;
+                    this.ctx.fillRect(x + 2, y + 2, this.cellSize - 4, this.cellSize - 4);
+
+                    // Border
+                    this.ctx.strokeStyle = block.borderColor;
+                    this.ctx.lineWidth = 2;
+                    this.ctx.strokeRect(x + 2, y + 2, this.cellSize - 4, this.cellSize - 4);
+
+                    this.ctx.restore();
+
+                    // Draw label on center cell
+                    if (row === Math.floor(block.shape.length / 2) &&
+                        col === Math.floor(block.shape[row].length / 2)) {
+                        this.ctx.fillStyle = '#ffffff';
+                        this.ctx.font = 'bold 12px Arial';
+                        this.ctx.textAlign = 'center';
+                        this.ctx.textBaseline = 'middle';
+                        this.ctx.fillText(block.label, x + this.cellSize / 2, y + this.cellSize / 2);
+                    }
+                }
             }
         }
     }
 
-    clearPortfolio() {
-        this.Composite.allBodies(this.world).forEach(body => {
-            if (!body.isStatic && body.label !== 'safeZone') {
-                this.Composite.remove(this.world, body);
+    // ═══════════════════════════════════════════════════════════
+    // INTERAÇÃO COM CLIQUE
+    // ═══════════════════════════════════════════════════════════
+
+    handleCanvasClick(event) {
+        const rect = this.canvas.getBoundingClientRect();
+        const mouseX = event.clientX - rect.left;
+        const mouseY = event.clientY - rect.top;
+
+        // Convert to grid coordinates
+        const gridX = Math.floor((mouseX - this.offsetX) / this.cellSize);
+        const gridY = Math.floor((mouseY - this.offsetY) / this.cellSize);
+
+        if (gridY >= 0 && gridY < this.gridHeight && gridX >= 0 && gridX < this.gridWidth) {
+            const block = this.grid[gridY][gridX];
+            if (block) {
+                this.openAssetModal(block);
             }
-        });
-        this.portfolio = [];
-        this.updateMetrics();
-        localStorage.removeItem('cryptoPhysicsPortfolio');
-    }
-
-    removeAsset(body) {
-        this.Composite.remove(this.world, body);
-        this.portfolio = this.portfolio.filter(asset => asset.body !== body);
-        this.updateMetrics();
-    }
-
-    togglePause() {
-        const btn = document.getElementById('pauseBtn');
-        if (this.isPaused) {
-            this.Runner.run(this.runner, this.engine);
-            btn.textContent = '⏸️';
-            this.isPaused = false;
-        } else {
-            this.Runner.stop(this.runner);
-            btn.textContent = '▶️';
-            this.isPaused = true;
         }
     }
 
-    toggleGravity() {
-        this.hasGravity = !this.hasGravity;
-        this.engine.world.gravity.y = this.hasGravity ? 1 : 0;
-        document.getElementById('gravityBtn').textContent = this.hasGravity ? '🌍' : '🚀';
-    }
-
     // ═══════════════════════════════════════════════════════════
-    // MODAL
+    // MODAL DE DETALHES
     // ═══════════════════════════════════════════════════════════
 
-    openAssetModal(body) {
-        if (!body.cryptoData) return;
-
-        this.selectedAsset = body;
-        const { type, quantity } = body.cryptoData;
-        const price = this.prices[type]?.usd || 0;
-        const change24h = this.prices[type]?.usd_24h_change || 0;
+    openAssetModal(block) {
+        this.selectedBlock = block;
+        const { crypto, quantity } = block;
+        const price = this.prices[crypto]?.usd || 0;
+        const change24h = this.prices[crypto]?.usd_24h_change || 0;
         const value = price * quantity;
 
         const modal = document.getElementById('assetModal');
@@ -722,15 +477,13 @@ class CryptoPhysicsEngine {
             bitcoin: '₿ Bitcoin',
             ethereum: 'Ξ Ethereum',
             solana: '◎ Solana',
-            binancecoin: '◆ Binance Coin',
             cardano: '₳ Cardano',
             dogecoin: '🐕 Dogecoin',
             'shiba-inu': '🐕 Shiba Inu'
         };
 
-        title.textContent = cryptoNames[type] || type;
+        title.textContent = cryptoNames[crypto] || crypto;
 
-        // Calculate volatility classification
         const absChange = Math.abs(change24h);
         let volatilityClass = 'Baixa';
         let volatilityColor = '#14F195';
@@ -771,12 +524,8 @@ class CryptoPhysicsEngine {
                 <span class="detail-value">$${value.toFixed(2)}</span>
             </div>
             <div class="detail-row">
-                <span class="detail-label">Velocidade Física:</span>
-                <span class="detail-value">${this.Vector.magnitude(body.velocity).toFixed(2)} px/s</span>
-            </div>
-            <div class="detail-row">
-                <span class="detail-label">Massa (Densidade):</span>
-                <span class="detail-value">${body.density.toFixed(3)}</span>
+                <span class="detail-label">Posição Grid:</span>
+                <span class="detail-value">X:${block.x} Y:${block.y}</span>
             </div>
         `;
 
@@ -785,62 +534,274 @@ class CryptoPhysicsEngine {
 
     closeModal() {
         document.getElementById('assetModal').classList.remove('active');
-        this.selectedAsset = null;
+        this.selectedBlock = null;
+    }
+
+    removeAsset(block) {
+        // Remove from blocks array
+        this.blocks = this.blocks.filter(b => b.id !== block.id);
+
+        // Remove from portfolio
+        this.portfolio = this.portfolio.filter(p => p.block.id !== block.id);
+
+        // Remove from grid
+        for (let y = 0; y < this.gridHeight; y++) {
+            for (let x = 0; x < this.gridWidth; x++) {
+                if (this.grid[y][x]?.id === block.id) {
+                    this.grid[y][x] = null;
+                }
+            }
+        }
+
+        // Reorganize remaining blocks
+        setTimeout(() => {
+            this.reorganizeBlocks();
+        }, 300);
+
+        this.updateMetrics();
     }
 
     // ═══════════════════════════════════════════════════════════
-    // PARTICLE EFFECTS
+    // MÉTRICAS E PREÇOS
     // ═══════════════════════════════════════════════════════════
 
-    createParticleEffect(x, y) {
-        const particleCount = 15;
-        for (let i = 0; i < particleCount; i++) {
-            const angle = (Math.PI * 2 * i) / particleCount;
-            const velocity = 5 + Math.random() * 3;
-            const particle = this.Bodies.circle(x, y, 3 + Math.random() * 3, {
-                density: 0.001,
-                friction: 0.05,
-                restitution: 0.8,
-                render: {
-                    fillStyle: `hsl(${Math.random() * 360}, 100%, 50%)`,
-                    strokeStyle: '#ffffff',
-                    lineWidth: 1
-                },
-                label: 'particle'
-            });
+    updateMetrics() {
+        // Count unique assets
+        const uniqueAssets = new Set(this.portfolio.map(p => p.crypto));
+        document.getElementById('assetCount').textContent = uniqueAssets.size;
 
-            this.Body.setVelocity(particle, {
-                x: Math.cos(angle) * velocity,
-                y: Math.sin(angle) * velocity
-            });
+        // Calculate total value
+        let totalValue = 0;
+        this.portfolio.forEach(p => {
+            const price = this.prices[p.crypto]?.usd || 0;
+            totalValue += price * p.quantity;
+        });
+        document.getElementById('totalValue').textContent = `$${totalValue.toFixed(2)}`;
 
-            this.Composite.add(this.world, particle);
-            this.particles.push(particle);
+        // Calculate stack height
+        let maxHeight = 0;
+        for (let y = 0; y < this.gridHeight; y++) {
+            if (this.grid[y].some(cell => cell !== null)) {
+                maxHeight = this.gridHeight - y;
+                break;
+            }
+        }
+        document.getElementById('stackHeight').textContent = maxHeight;
 
-            // Remove particle after 2 seconds
-            setTimeout(() => {
-                this.Composite.remove(this.world, particle);
-                this.particles = this.particles.filter(p => p !== particle);
-            }, 2000);
+        // Block count
+        document.getElementById('blockCount').textContent = `Blocos: ${this.blocks.length}`;
+
+        // Diversification (max 6 types: BTC, ETH, SOL, ADA, DOGE, SHIB)
+        const diversification = Math.min((uniqueAssets.size / 6) * 100, 100);
+        document.getElementById('diversification').textContent = `${diversification.toFixed(0)}%`;
+        document.getElementById('diversificationBar').style.width = `${diversification}%`;
+
+        // Risk calculation
+        let totalRisk = 0;
+        let totalWeight = 0;
+
+        this.portfolio.forEach(p => {
+            const price = this.prices[p.crypto]?.usd || 0;
+            const change = Math.abs(this.prices[p.crypto]?.usd_24h_change || 0);
+            const weight = price * p.quantity;
+            totalRisk += change * weight;
+            totalWeight += weight;
+        });
+
+        const avgRisk = totalWeight > 0 ? totalRisk / totalWeight : 0;
+        const riskElement = document.getElementById('riskLevel');
+
+        if (avgRisk < 2) {
+            riskElement.textContent = 'Baixo';
+            riskElement.className = 'metric-value risk-indicator risk-low';
+        } else if (avgRisk < 4) {
+            riskElement.textContent = 'Médio';
+            riskElement.className = 'metric-value risk-indicator risk-medium';
+        } else {
+            riskElement.textContent = 'Alto';
+            riskElement.className = 'metric-value risk-indicator risk-high';
+        }
+    }
+
+    async loadPrices() {
+        try {
+            const ids = 'bitcoin,ethereum,solana,cardano,dogecoin,shiba-inu';
+            const response = await fetch(
+                `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`
+            );
+            this.prices = await response.json();
+            this.updateMetrics();
+        } catch (error) {
+            console.error('Erro ao carregar preços:', error);
         }
     }
 
     // ═══════════════════════════════════════════════════════════
-    // UTILITIES
+    // PERSISTÊNCIA
     // ═══════════════════════════════════════════════════════════
 
-    handleResize() {
-        const width = this.canvasContainer.clientWidth;
-        const height = this.canvasContainer.clientHeight;
+    savePortfolio() {
+        const data = {
+            portfolio: this.portfolio.map(p => ({
+                crypto: p.crypto,
+                quantity: p.quantity,
+                timestamp: p.timestamp
+            })),
+            timestamp: Date.now()
+        };
+        localStorage.setItem('cryptoTetrisPortfolio', JSON.stringify(data));
+        alert('💾 Carteira salva com sucesso!');
+    }
 
-        this.render.canvas.width = width;
-        this.render.canvas.height = height;
-        this.render.options.width = width;
-        this.render.options.height = height;
+    loadSavedPortfolio() {
+        const saved = localStorage.getItem('cryptoTetrisPortfolio');
+        if (saved) {
+            try {
+                const data = JSON.parse(saved);
+                // Group by crypto and sum quantities
+                const grouped = {};
+                data.portfolio.forEach(p => {
+                    if (!grouped[p.crypto]) {
+                        grouped[p.crypto] = 0;
+                    }
+                    grouped[p.crypto] += p.quantity;
+                });
 
-        this.Render.lookAt(this.render, {
-            min: { x: 0, y: 0 },
-            max: { x: width, y: height }
+                // Add with delays
+                Object.entries(grouped).forEach(([crypto, quantity], index) => {
+                    setTimeout(() => {
+                        this.addAsset(crypto, quantity);
+                    }, index * 1000);
+                });
+            } catch (error) {
+                console.error('Erro ao carregar portfólio:', error);
+            }
+        }
+    }
+
+    clearPortfolio() {
+        this.blocks = [];
+        this.portfolio = [];
+        this.grid = Array(this.gridHeight).fill(null).map(() =>
+            Array(this.gridWidth).fill(null)
+        );
+        this.updateMetrics();
+        localStorage.removeItem('cryptoTetrisPortfolio');
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // EVENT LISTENERS
+    // ═══════════════════════════════════════════════════════════
+
+    setupEventListeners() {
+        // Add Asset Form
+        document.getElementById('addAssetForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const crypto = document.getElementById('assetSelect').value;
+            const quantity = parseFloat(document.getElementById('quantityInput').value);
+
+            if (crypto && quantity > 0) {
+                this.addAsset(crypto, quantity);
+                e.target.reset();
+            }
+        });
+
+        // Canvas click
+        this.canvas.addEventListener('click', (e) => {
+            this.handleCanvasClick(e);
+        });
+
+        // How It Works Modal
+        document.getElementById('howItWorksBtn').addEventListener('click', () => {
+            document.getElementById('howItWorksModal').classList.add('active');
+        });
+
+        document.getElementById('closeHowItWorks').addEventListener('click', () => {
+            document.getElementById('howItWorksModal').classList.remove('active');
+        });
+
+        document.getElementById('howItWorksModal').addEventListener('click', (e) => {
+            if (e.target.id === 'howItWorksModal') {
+                document.getElementById('howItWorksModal').classList.remove('active');
+            }
+        });
+
+        // Reorganize
+        document.getElementById('reorganizeBtn').addEventListener('click', () => {
+            this.reorganizeBlocks();
+        });
+
+        // Save Portfolio
+        document.getElementById('saveBtn').addEventListener('click', () => {
+            this.savePortfolio();
+        });
+
+        // Clear All
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            if (confirm('Tem certeza que deseja limpar todo o portfólio?')) {
+                this.clearPortfolio();
+            }
+        });
+
+        // Modal Close
+        document.querySelector('.modal-close').addEventListener('click', () => {
+            this.closeModal();
+        });
+
+        document.getElementById('assetModal').addEventListener('click', (e) => {
+            if (e.target.id === 'assetModal') {
+                this.closeModal();
+            }
+        });
+
+        // Remove Asset from Modal
+        document.getElementById('removeAssetBtn').addEventListener('click', () => {
+            if (this.selectedBlock) {
+                this.removeAsset(this.selectedBlock);
+                this.closeModal();
+            }
+        });
+
+        // Mobile Menu Toggle
+        const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+        const sidebar = document.getElementById('sidebar');
+        const mobileOverlay = document.getElementById('mobileOverlay');
+
+        const toggleMobileMenu = () => {
+            sidebar.classList.toggle('active');
+            mobileOverlay.classList.toggle('active');
+            mobileMenuToggle.classList.toggle('active');
+
+            if (sidebar.classList.contains('active')) {
+                document.body.style.overflow = 'hidden';
+            } else {
+                document.body.style.overflow = '';
+            }
+        };
+
+        mobileMenuToggle.addEventListener('click', toggleMobileMenu);
+        mobileOverlay.addEventListener('click', toggleMobileMenu);
+
+        sidebar.addEventListener('click', (e) => {
+            if (window.innerWidth <= 768 && e.target.classList.contains('btn')) {
+                setTimeout(() => {
+                    if (sidebar.classList.contains('active')) {
+                        toggleMobileMenu();
+                    }
+                }, 300);
+            }
+        });
+
+        // Window resize
+        window.addEventListener('resize', () => {
+            this.setupCanvas();
+
+            if (window.innerWidth > 768 && sidebar.classList.contains('active')) {
+                sidebar.classList.remove('active');
+                mobileOverlay.classList.remove('active');
+                mobileMenuToggle.classList.remove('active');
+                document.body.style.overflow = '';
+            }
         });
     }
 }
@@ -850,10 +811,10 @@ class CryptoPhysicsEngine {
 // ═══════════════════════════════════════════════════════════
 
 window.addEventListener('DOMContentLoaded', () => {
-    window.cryptoPhysics = new CryptoPhysicsEngine();
+    window.cryptoTetris = new CryptoTetrisEngine();
 
     // Refresh prices every 60 seconds
     setInterval(() => {
-        window.cryptoPhysics.loadPrices();
+        window.cryptoTetris.loadPrices();
     }, 60000);
 });

@@ -33,6 +33,10 @@ body {
     color: var(--text-primary);
     overflow: hidden;
     height: 100vh;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -401,16 +405,19 @@ body {
     text-shadow: 0 0 10px rgba(0, 217, 255, 0.5);
 }
 
-#physicsCanvas {
+#tetrisCanvas {
     flex: 1;
-    position: relative;
-    overflow: hidden;
-}
-
-#physicsCanvas canvas {
     display: block;
     width: 100%;
-    height: 100%;
+    cursor: pointer;
+}
+
+.canvas-stats {
+    display: flex;
+    gap: 20px;
+    font-size: 14px;
+    color: var(--neon-green);
+    text-shadow: 0 0 5px rgba(20, 241, 149, 0.5);
 }
 
 .canvas-info {
@@ -749,23 +756,394 @@ button[title]:hover::after {
 }
 
 /* ═══════════════════════════════════════════════════════════
+   MOBILE MENU TOGGLE (HAMBURGER) & OVERLAY
+   ═══════════════════════════════════════════════════════════ */
+
+/* Mobile Overlay */
+.mobile-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    height: 100dvh;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(3px);
+    z-index: 998;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.mobile-overlay.active {
+    display: block;
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.mobile-menu-toggle {
+    display: none;
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    z-index: 1001;
+    width: 50px;
+    height: 50px;
+    background: rgba(0, 217, 255, 0.2);
+    backdrop-filter: blur(10px);
+    border: 2px solid var(--neon-blue);
+    border-radius: 10px;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 20px rgba(0, 217, 255, 0.4);
+    -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-menu-toggle span {
+    width: 25px;
+    height: 3px;
+    background: var(--neon-blue);
+    border-radius: 2px;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 10px var(--neon-blue);
+}
+
+.mobile-menu-toggle:hover {
+    background: rgba(0, 217, 255, 0.3);
+    box-shadow: 0 0 30px rgba(0, 217, 255, 0.6);
+}
+
+.mobile-menu-toggle.active span:nth-child(1) {
+    transform: rotate(45deg) translate(8px, 8px);
+}
+
+.mobile-menu-toggle.active span:nth-child(2) {
+    opacity: 0;
+}
+
+.mobile-menu-toggle.active span:nth-child(3) {
+    transform: rotate(-45deg) translate(8px, -8px);
+}
+
+/* ═══════════════════════════════════════════════════════════
    RESPONSIVIDADE
    ═══════════════════════════════════════════════════════════ */
 
-@media (max-width: 768px) {
+/* Tablets e telas médias */
+@media (max-width: 1024px) {
+    .sidebar {
+        width: 280px;
+    }
+
+    .asset-examples {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .controls-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Mobile (Landscape) */
+@media (max-width: 768px) and (orientation: landscape) {
     .container {
-        flex-direction: column;
+        flex-direction: row;
     }
 
     .sidebar {
-        width: 100%;
-        max-height: 40vh;
-        border-right: none;
-        border-bottom: 2px solid var(--neon-blue);
+        width: 280px;
+        max-height: 100vh;
+        position: fixed;
+        left: -280px;
+        top: 0;
+        z-index: 999;
+        transition: left 0.3s ease;
+    }
+
+    .sidebar.active {
+        left: 0;
+        box-shadow: 5px 0 30px rgba(0, 0, 0, 0.5);
+    }
+
+    .mobile-menu-toggle {
+        display: flex;
     }
 
     .canvas-container {
-        height: 60vh;
+        margin-left: 0;
+        width: 100%;
+    }
+}
+
+/* Mobile (Portrait) */
+@media (max-width: 768px) {
+    body {
+        overflow-x: hidden;
+        overflow-y: hidden;
+        position: fixed;
+        width: 100%;
+        height: 100vh;
+        height: 100dvh; /* Dynamic viewport height para mobile */
+    }
+
+    .container {
+        flex-direction: column;
+        overflow: hidden;
+        height: 100vh;
+        height: 100dvh;
+    }
+
+    .mobile-menu-toggle {
+        display: flex;
+    }
+
+    .sidebar {
+        position: fixed;
+        width: 85%;
+        max-width: 340px;
+        height: 100vh;
+        height: 100dvh;
+        max-height: 100vh;
+        max-height: 100dvh;
+        left: -100%;
+        top: 0;
+        z-index: 999;
+        border-right: 2px solid var(--neon-blue);
+        border-bottom: none;
+        transition: left 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 5px 0 30px rgba(0, 0, 0, 0.8);
+        overflow-y: auto;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
+        padding: 16px;
+        gap: 16px;
+    }
+
+    .sidebar.active {
+        left: 0;
+    }
+
+    /* Melhora espaçamento interno dos cards no sidebar mobile */
+    .control-panel,
+    .metrics,
+    .actions,
+    .legend {
+        padding: 16px;
+        margin-bottom: 0;
+    }
+
+    .control-panel h2,
+    .metrics h2,
+    .actions h2 {
+        font-size: 15px;
+        margin-bottom: 12px;
+    }
+
+    .form-group {
+        margin-bottom: 16px;
+    }
+
+    .canvas-container {
+        width: 100%;
+        height: 100vh;
+        height: 100dvh;
+        margin-left: 0;
+    }
+
+    /* Ajustes de formulário mobile */
+    .form-group select,
+    .form-group input {
+        font-size: 16px; /* Previne zoom no iOS */
+        padding: 14px 12px;
+        border-width: 2px;
+        min-height: 48px;
+    }
+
+    .form-group label {
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 8px;
+    }
+
+    .btn {
+        padding: 14px 16px;
+        font-size: 14px;
+        min-height: 50px; /* Touch target otimizado */
+        font-weight: 700;
+        letter-spacing: 0.3px;
+    }
+
+    .icon-btn {
+        padding: 12px 18px;
+        font-size: 20px;
+        min-height: 48px;
+        min-width: 48px;
+    }
+
+    .btn-help {
+        min-height: 44px;
+        font-size: 13px;
+        padding: 10px 12px;
+    }
+
+    /* Modal mobile */
+    .modal-content {
+        width: 95%;
+        max-height: 90vh;
+        padding: 20px;
+    }
+
+    .modal-large {
+        width: 95%;
+        max-height: 90vh;
+    }
+
+    .modal-title-fancy {
+        font-size: 22px;
+    }
+
+    .asset-examples {
+        grid-template-columns: 1fr;
+    }
+
+    .controls-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* Métricas mobile */
+    .metric-item {
+        padding: 12px 0;
+    }
+
+    .metric-label,
+    .metric-value {
+        font-size: 14px;
+    }
+
+    /* Canvas header mobile */
+    .canvas-header {
+        padding: 15px;
+    }
+
+    .canvas-header h2 {
+        font-size: 16px;
+    }
+
+    .canvas-info {
+        padding: 12px 15px;
+        font-size: 12px;
+    }
+
+    /* Legenda mobile */
+    .legend h3 {
+        font-size: 13px;
+    }
+
+    .legend-item {
+        font-size: 11px;
+    }
+
+    /* Logo mobile */
+    .logo h1 {
+        font-size: 20px;
+    }
+
+    .tagline {
+        font-size: 11px;
+    }
+
+    /* Ações mobile - botões empilhados */
+    .actions {
+        gap: 8px;
+    }
+
+    .btn-chaos,
+    .btn-warning,
+    .btn-info,
+    .btn-success {
+        margin-bottom: 8px;
+    }
+}
+
+/* Mobile pequeno (< 375px) */
+@media (max-width: 375px) {
+    .sidebar {
+        width: 90%;
+    }
+
+    .modal-content {
+        padding: 15px;
+    }
+
+    .btn {
+        font-size: 13px;
+        padding: 12px;
+    }
+
+    .canvas-header h2 {
+        font-size: 14px;
+    }
+
+    .metric-value {
+        font-size: 14px;
+    }
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+    .btn,
+    .icon-btn,
+    .mobile-menu-toggle,
+    .btn-help {
+        min-height: 48px; /* iOS touch target */
+        min-width: 48px;
+    }
+
+    .form-group select,
+    .form-group input {
+        font-size: 16px; /* Prevent zoom */
+        min-height: 48px;
+    }
+
+    /* Áreas de toque para elementos clicáveis */
+    .modal-close {
+        min-width: 44px;
+        min-height: 44px;
+        padding: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .legend-item {
+        min-height: 44px;
+        padding: 8px 0;
+    }
+
+    /* Disable hover effects on touch devices */
+    .btn:hover,
+    .icon-btn:hover,
+    .btn-help:hover {
+        transform: none;
+        box-shadow: inherit;
+    }
+
+    .btn:active,
+    .icon-btn:active,
+    .btn-help:active,
+    .mobile-menu-toggle:active {
+        transform: scale(0.95);
+        opacity: 0.8;
+    }
+
+    /* Feedback visual para touch */
+    .btn:active {
+        box-shadow: 0 0 20px rgba(0, 217, 255, 0.6);
     }
 }
 

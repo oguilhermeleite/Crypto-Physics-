@@ -2,17 +2,30 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CryptoPhysics Portfolio Analyzer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0a0e27">
+    <title>CryptoPhysics Portfolio Analyzer - Tetris Edition</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <!-- Mobile Overlay -->
+    <div class="mobile-overlay" id="mobileOverlay"></div>
+
+    <!-- Mobile Menu Toggle -->
+    <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Toggle Menu">
+        <span></span>
+        <span></span>
+        <span></span>
+    </button>
+
     <div class="container">
         <!-- SIDEBAR -->
-        <aside class="sidebar">
+        <aside class="sidebar" id="sidebar">
             <div class="logo">
-                <h1>⚛️ CryptoPhysics</h1>
-                <p class="tagline">Portfolio com Física Real</p>
+                <h1>🎮 CryptoPhysics</h1>
+                <p class="tagline">Portfolio Tetris Visual</p>
                 <button class="btn-help" id="howItWorksBtn">❓ Como Funciona?</button>
             </div>
 
@@ -27,7 +40,6 @@
                             <option value="bitcoin">₿ Bitcoin (BTC)</option>
                             <option value="ethereum">Ξ Ethereum (ETH)</option>
                             <option value="solana">◎ Solana (SOL)</option>
-                            <option value="binancecoin">◆ Binance Coin (BNB)</option>
                             <option value="cardano">₳ Cardano (ADA)</option>
                             <option value="dogecoin">🐕 Dogecoin (DOGE)</option>
                             <option value="shiba-inu">🐕 Shiba Inu (SHIB)</option>
@@ -57,6 +69,10 @@
                     <span class="metric-value" id="assetCount">0</span>
                 </div>
                 <div class="metric-item">
+                    <span class="metric-label">📏 Altura Pilha:</span>
+                    <span class="metric-value" id="stackHeight">0</span>
+                </div>
+                <div class="metric-item">
                     <span class="metric-label">🎯 Risco:</span>
                     <span class="metric-value risk-indicator" id="riskLevel">Nenhum</span>
                 </div>
@@ -72,14 +88,8 @@
             <!-- AÇÕES -->
             <div class="actions">
                 <h2>⚙️ Ações</h2>
-                <button class="btn btn-chaos" id="chaosMode" title="Caos extremo!">
-                    🌪️ Modo Caos
-                </button>
-                <button class="btn btn-warning" id="stressTestBtn" title="Aplicar forças aleatórias">
-                    🌊 Stress Test
-                </button>
-                <button class="btn btn-info" id="resetZoneBtn" title="Reorganizar sem deletar">
-                    🎯 Resetar Posições
+                <button class="btn btn-info" id="reorganizeBtn" title="Reorganiza peças otimizando espaço">
+                    🔄 Reorganizar
                 </button>
                 <button class="btn btn-success" id="saveBtn" title="Salvar no navegador">
                     💾 Salvar Carteira
@@ -91,38 +101,41 @@
 
             <!-- LEGENDA -->
             <div class="legend">
-                <h3>📖 Legenda Física</h3>
+                <h3>📖 Legenda das Formas</h3>
                 <div class="legend-item">
                     <span class="legend-color" style="background: #F7931A;"></span>
-                    <span>Pesado = Estável</span>
+                    <span>BTC = Quadrado 4x4</span>
                 </div>
                 <div class="legend-item">
-                    <span class="legend-color bouncy"></span>
-                    <span>Saltitante = Volátil</span>
+                    <span class="legend-color" style="background: #627EEA;"></span>
+                    <span>ETH = Retângulo 4x3</span>
                 </div>
                 <div class="legend-item">
                     <span class="legend-color" style="background: #14F195;"></span>
-                    <span>Verde = Menor Risco</span>
+                    <span>SOL = L-Shape 3x3</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color" style="background: #0033AD;"></span>
+                    <span>ADA = T-Shape 3x2</span>
                 </div>
                 <div class="legend-item">
                     <span class="legend-color" style="background: #FF1493;"></span>
-                    <span>Rosa = Alto Risco</span>
+                    <span>DOGE/SHIB = Cubinhos 1x1</span>
                 </div>
             </div>
         </aside>
 
-        <!-- CANVAS DE FÍSICA -->
+        <!-- CANVAS TETRIS -->
         <main class="canvas-container">
             <div class="canvas-header">
-                <h2>🌍 Simulação Física do Portfólio</h2>
-                <div class="canvas-controls">
-                    <button class="icon-btn" id="pauseBtn" title="Pausar/Retomar">⏸️</button>
-                    <button class="icon-btn" id="gravityBtn" title="Alternar Gravidade">🌍</button>
+                <h2>🎮 Visualização Tetris do Portfólio</h2>
+                <div class="canvas-stats">
+                    <span id="blockCount">Blocos: 0</span>
                 </div>
             </div>
-            <div id="physicsCanvas"></div>
+            <canvas id="tetrisCanvas"></canvas>
             <div class="canvas-info">
-                <p>💡 <strong>Dica:</strong> Arraste os ativos, clique duas vezes para detalhes, observe como cada cripto se comporta!</p>
+                <p>💡 <strong>Dica:</strong> Blocos se encaixam automaticamente! Clique em um bloco para ver detalhes.</p>
             </div>
         </main>
     </div>
@@ -141,71 +154,76 @@
     <div id="howItWorksModal" class="modal">
         <div class="modal-content modal-large">
             <span class="modal-close" id="closeHowItWorks">&times;</span>
-            <h2 class="modal-title-fancy">❓ Como Funciona o CryptoPhysics?</h2>
+            <h2 class="modal-title-fancy">❓ Como Funciona o CryptoPhysics Tetris?</h2>
 
             <div class="how-it-works-content">
                 <section class="info-section">
-                    <h3>⚛️ O Conceito</h3>
-                    <p>No CryptoPhysics, cada criptomoeda é representada por um <strong>objeto físico</strong> com propriedades que refletem suas características reais no mercado:</p>
+                    <h3>🎮 O Conceito</h3>
+                    <p>No CryptoPhysics Tetris, cada criptomoeda é representada por <strong>blocos coloridos</strong> que se encaixam automaticamente formando um mosaico visual da sua carteira:</p>
                     <ul>
-                        <li><strong>Massa</strong> = Estabilidade e capitalização</li>
-                        <li><strong>Fricção</strong> = Resistência a mudanças bruscas</li>
-                        <li><strong>Restituição (bounce)</strong> = Volatilidade</li>
+                        <li><strong>Forma</strong> = Tipo de criptomoeda</li>
+                        <li><strong>Tamanho</strong> = Quantidade investida</li>
+                        <li><strong>Altura da pilha</strong> = Diversificação do portfólio</li>
                     </ul>
                 </section>
 
                 <section class="info-section">
-                    <h3>🎨 Comportamento dos Ativos</h3>
+                    <h3>🎨 Formas dos Ativos</h3>
                     <div class="asset-examples">
                         <div class="asset-card">
                             <span class="asset-icon">🟧</span>
                             <h4>Bitcoin (BTC)</h4>
-                            <p><strong>A Rocha:</strong> Pesado, estável, quase não quica. Representa a solidez do BTC no mercado.</p>
+                            <p><strong>Quadrado 4x4:</strong> Sólido e robusto, ocupa espaço significativo representando estabilidade.</p>
                         </div>
                         <div class="asset-card">
                             <span class="asset-icon">🟦</span>
                             <h4>Ethereum (ETH)</h4>
-                            <p><strong>O Tijolo:</strong> Sólido e confiável, com boa fricção. Estabilidade moderada.</p>
+                            <p><strong>Retângulo 4x3:</strong> Base larga e confiável, ideal para encaixar outros blocos.</p>
                         </div>
                         <div class="asset-card">
                             <span class="asset-icon">🟩</span>
                             <h4>Solana (SOL)</h4>
-                            <p><strong>O Pentágono:</strong> Ágil e responsivo, mais volátil que BTC/ETH.</p>
+                            <p><strong>L-Shape:</strong> Forma ágil que preenche cantos e espaços irregulares.</p>
+                        </div>
+                        <div class="asset-card">
+                            <span class="asset-icon">🔵</span>
+                            <h4>Cardano (ADA)</h4>
+                            <p><strong>T-Shape:</strong> Versatil para preencher gaps no portfólio.</p>
                         </div>
                         <div class="asset-card">
                             <span class="asset-icon">🌸</span>
                             <h4>Memecoins (DOGE/SHIB)</h4>
-                            <p><strong>Nuvem Caótica:</strong> Múltiplas partículas super saltitantes! Alta volatilidade extrema.</p>
+                            <p><strong>Cubinhos 1x1:</strong> Pequenos e numerosos, preenchem qualquer espaço!</p>
                         </div>
                     </div>
                 </section>
 
                 <section class="info-section">
-                    <h3>🎮 Controles Interativos</h3>
+                    <h3>🎯 Como Funciona o Encaixe</h3>
                     <div class="controls-grid">
                         <div class="control-item">
+                            <span class="control-emoji">⬇️</span>
+                            <strong>Queda Automática:</strong> Ao adicionar, o bloco cai do topo
+                        </div>
+                        <div class="control-item">
+                            <span class="control-emoji">🧩</span>
+                            <strong>Encaixe Perfeito:</strong> Blocos se posicionam sem deixar buracos
+                        </div>
+                        <div class="control-item">
+                            <span class="control-emoji">✨</span>
+                            <strong>Efeito Visual:</strong> Partículas e glow ao encaixar
+                        </div>
+                        <div class="control-item">
+                            <span class="control-emoji">🔄</span>
+                            <strong>Reorganizar:</strong> Otimiza espaço rearranjando blocos
+                        </div>
+                        <div class="control-item">
                             <span class="control-emoji">👆</span>
-                            <strong>Duplo Clique:</strong> Abre detalhes completos do ativo
+                            <strong>Clique:</strong> Veja detalhes do ativo
                         </div>
                         <div class="control-item">
-                            <span class="control-emoji">✋</span>
-                            <strong>Arrastar:</strong> Movimente qualquer objeto livremente
-                        </div>
-                        <div class="control-item">
-                            <span class="control-emoji">🌊</span>
-                            <strong>Stress Test:</strong> Aplica forças aleatórias (simula volatilidade)
-                        </div>
-                        <div class="control-item">
-                            <span class="control-emoji">🌪️</span>
-                            <strong>Modo Caos:</strong> Forças extremas! Simula crash de mercado
-                        </div>
-                        <div class="control-item">
-                            <span class="control-emoji">⏸️</span>
-                            <strong>Pausar:</strong> Congela a simulação
-                        </div>
-                        <div class="control-item">
-                            <span class="control-emoji">🚀</span>
-                            <strong>Gravidade:</strong> Alterna entre modo normal e espaço sideral
+                            <span class="control-emoji">💾</span>
+                            <strong>Salvar:</strong> Preserva sua carteira no navegador
                         </div>
                     </div>
                 </section>
@@ -214,28 +232,26 @@
                     <h3>📊 Interpretando as Métricas</h3>
                     <ul>
                         <li><strong>💰 Valor Total:</strong> Soma do valor de todos os ativos (preços em tempo real via CoinGecko)</li>
-                        <li><strong>📈 Ativos:</strong> Quantidade total de objetos no portfólio</li>
+                        <li><strong>📈 Ativos:</strong> Número de diferentes criptomoedas no portfólio</li>
+                        <li><strong>📏 Altura Pilha:</strong> Quantos níveis de blocos sua carteira possui</li>
                         <li><strong>🎯 Risco:</strong> Calculado pela volatilidade média ponderada (Baixo &lt;2%, Médio 2-4%, Alto &gt;4%)</li>
-                        <li><strong>🌈 Diversificação:</strong> Percentual baseado na variedade de criptos (máximo 7 tipos)</li>
+                        <li><strong>🌈 Diversificação:</strong> Percentual baseado na variedade de criptos (máximo 6 tipos)</li>
                     </ul>
                 </section>
 
                 <section class="info-section tips-section">
                     <h3>💡 Dicas de Uso</h3>
                     <ul class="tips-list">
-                        <li>🎯 Adicione múltiplos ativos para ver como interagem fisicamente</li>
-                        <li>🌊 Use o Stress Test para visualizar como seu portfólio reage à turbulência</li>
-                        <li>💾 Salve sua carteira para carregar na próxima visita</li>
-                        <li>🔄 Experimente diferentes combinações para otimizar diversificação</li>
-                        <li>🐕 Memecoins criam partículas caóticas - veja o espetáculo!</li>
+                        <li>🎯 Comece com BTC ou ETH para criar uma base sólida</li>
+                        <li>🔄 Use Reorganizar para visualizar melhor quando tiver muitos blocos</li>
+                        <li>💾 Salve sua carteira para não perder o progresso</li>
+                        <li>🌈 Diversifique para criar padrões visuais interessantes</li>
+                        <li>🐕 Memecoins são ótimos para preencher pequenos espaços!</li>
                     </ul>
                 </section>
             </div>
         </div>
     </div>
-
-    <!-- Matter.js CDN -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
 
     <!-- Chart.js CDN (opcional para gráficos futuros) -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
